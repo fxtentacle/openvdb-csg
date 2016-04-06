@@ -2,6 +2,7 @@
 #include <vector>
 #include "./openvdb/openvdb.h"
 #include "./openvdb/tools/MeshToVolume.h"
+#include "./openvdb/tools/VolumeToMesh.h"
 
 using namespace std;
 
@@ -81,6 +82,46 @@ int m2v(int argc, char* argv[])  {
 }
 
 int v2m(int argc, char* argv[])  {
+  if(argc < 2+4) {
+    printf("Please specify 4 parameters: input volume path, surface isovalue, adaptivity and output OBJ mesh path\n");
+    return 1;
+  }
+
+  const char* inputFile = argv[2];
+  double isovalue = atof(argv[3]);
+  double adaptivity = atof(argv[4]);
+  const char* outputFile = argv[5];
+
+  openvdb::io::File file(inputFile);
+  file.open();
+
+  openvdb::io::File::NameIterator nameIter = file.beginName();
+  if( nameIter == file.endName() ) {
+    printf("Error reading \"%s\" or file is empty.\n", inputFile);
+    return 1;
+  }
+
+  openvdb::FloatGrid::Ptr volume = openvdb::gridPtrCast<openvdb::FloatGrid>(file.readGrid(nameIter.gridName()));
+
+  std::vector<openvdb::Vec3s> points;
+  std::vector<openvdb::Vec3I> triangles;
+  std::vector<openvdb::Vec4I> quads;
+  openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*volume, points, triangles, quads, isovalue, adaptivity);
+
+
+
+  FILE* f = fopen(outputFile,"wt");
+  if(!f) {
+    printf("Cannot write to \"%s\"\n", outputFile);
+    return 1;
+  }
+
+  for(int i=0;i<points.size();i++) fprintf(f, "v %lf %lf %lf\n", points[i].x(), points[i].y(), points[i].z());
+  for(int i=0;i<triangles.size();i++) fprintf(f, "f %d// %d// %d//\n", triangles[i][0]+1, triangles[i][1]+1, triangles[i][2]+1);
+  for(int i=0;i<quads.size();i++) fprintf(f, "f %d// %d// %d// %d//\n", quads[i][0]+1, quads[i][1]+1, quads[i][2]+1, quads[i][3]+1);
+
+  fclose(f);
+
   return 0;
 }
 
