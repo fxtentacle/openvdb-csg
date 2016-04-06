@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "./openvdb/openvdb.h"
+#include "./openvdb/tools/MeshToVolume.h"
 
 using namespace std;
 
@@ -21,14 +22,15 @@ struct MeshDataAdapter {
 };
 
 int m2v(int argc, char* argv[])  {
-  if(argc < 5) {
-    printf("Please specify 3 parameters: input OBJ mesh path, band width and output volume path\n");
+  if(argc < 2+4) {
+    printf("Please specify 4 parameters: input OBJ mesh path, voxel size, band width and output volume path\n");
     return 1;
   }
 
   const char* inputFile = argv[2];
-  double surfaceOffset = atof(argv[3]);
-  const char* outputFile = argv[4];
+  double voxelSize = atof(argv[3]);
+  double bandWidth = atof(argv[4]);
+  const char* outputFile = argv[5];
 
   FILE* f = fopen(inputFile,"rt");
   if(!f) {
@@ -43,7 +45,7 @@ int m2v(int argc, char* argv[])  {
     if(line[0] == 'v' && line[1] == ' ') {
       // vertex
       double x=0,y=0,z=0,w=1;
-      sscanf(line, "v %f %f %f %f", &x, &y, &z, &w);
+      sscanf(line, "v %lf %lf %lf %lf", &x, &y, &z, &w);
       mesh.vertices.push_back(openvdb::Vec3d(x,y,z));
     } else if(line[0] == 'f' && line[1] == ' ') {
       // face
@@ -66,13 +68,14 @@ int m2v(int argc, char* argv[])  {
 
   fclose(f);
 
-  openvdb::GridType::Ptr meshToVolume	(	const MeshDataAdapter & 	mesh,
-                                 const math::Transform & 	transform,
-                                 float 	exteriorBandWidth = 3.0f,
-                                 float 	interiorBandWidth = 3.0f,
-                                 int 	flags = 0,
-                                 typename GridType::template ValueConverter< Int32 >::Type * 	polygonIndexGrid = NULL
-  )
+  openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxelSize);
+  openvdb::FloatGrid::Ptr volume = openvdb::tools::meshToVolume<openvdb::FloatGrid, MeshDataAdapter>(mesh,*transform,bandWidth,bandWidth,0,NULL);
+
+  openvdb::io::File file(outputFile);
+  openvdb::GridPtrVec grids;
+  grids.push_back(volume);
+  file.write(grids);
+  file.close();
 
   return 0;
 }
@@ -90,6 +93,9 @@ int main(int argc, char* argv[])  {
     printf("Please specify a command: m2v v2m vmod\n");
     return 1;
   }
+
+  openvdb::initialize();
+
   const char* command = argv[1];
   if(!strcmp(command, "m2v")) return m2v(argc, argv);
   if(!strcmp(command, "v2m")) return v2m(argc, argv);
