@@ -3,6 +3,7 @@
 #include "./openvdb/openvdb.h"
 #include "./openvdb/tools/MeshToVolume.h"
 #include "./openvdb/tools/VolumeToMesh.h"
+#include "./openvdb/tools/Composite.h"
 
 using namespace std;
 
@@ -81,6 +82,19 @@ int m2v(int argc, char* argv[])  {
   return 0;
 }
 
+inline openvdb::FloatGrid::Ptr fetchVolume(const char* inputFile) {
+  openvdb::io::File file(inputFile);
+  file.open();
+
+  openvdb::io::File::NameIterator nameIter = file.beginName();
+  if( nameIter == file.endName() ) {
+    printf("Error reading \"%s\" or file is empty.\n", inputFile);
+    exit(1);
+  }
+
+  return openvdb::gridPtrCast<openvdb::FloatGrid>(file.readGrid(nameIter.gridName()));
+}
+
 int v2m(int argc, char* argv[])  {
   if(argc < 2+4) {
     printf("Please specify 4 parameters: input volume path, surface isovalue, adaptivity and output OBJ mesh path\n");
@@ -92,16 +106,7 @@ int v2m(int argc, char* argv[])  {
   double adaptivity = atof(argv[4]);
   const char* outputFile = argv[5];
 
-  openvdb::io::File file(inputFile);
-  file.open();
-
-  openvdb::io::File::NameIterator nameIter = file.beginName();
-  if( nameIter == file.endName() ) {
-    printf("Error reading \"%s\" or file is empty.\n", inputFile);
-    return 1;
-  }
-
-  openvdb::FloatGrid::Ptr volume = openvdb::gridPtrCast<openvdb::FloatGrid>(file.readGrid(nameIter.gridName()));
+  openvdb::FloatGrid::Ptr volume = fetchVolume(inputFile);
 
   std::vector<openvdb::Vec3s> points;
   std::vector<openvdb::Vec3I> triangles;
@@ -125,13 +130,36 @@ int v2m(int argc, char* argv[])  {
   return 0;
 }
 
-int vmod(int argc, char* argv[])  {
+int vcsg(int argc, char* argv[])  {
+  if(argc < 2+4) {
+    printf("Please specify 4 parameters: operation (union/intersection/difference), input volume A path, input volume B path, output volume path\n");
+    return 1;
+  }
+
+  const char* operation = argv[2];
+  const char* inputFileA = argv[3];
+  const char* inputFileB = argv[4];
+  const char* outputFile = argv[5];
+
+  openvdb::FloatGrid::Ptr volumeA = fetchVolume(inputFileA);
+  openvdb::FloatGrid::Ptr volumeB = fetchVolume(inputFileB);
+
+  if(!strcmp(operation, "union")) openvdb::tools::csgUnion(*volumeA, *volumeB);
+  else if(!strcmp(operation, "intersection")) openvdb::tools::csgUnion(*volumeA, *volumeB);
+  else if(!strcmp(operation, "difference")) openvdb::tools::csgUnion(*volumeA, *volumeB);
+
+  openvdb::io::File file(outputFile);
+  openvdb::GridPtrVec grids;
+  grids.push_back(volumeA);
+  file.write(grids);
+  file.close();
+
   return 0;
 }
 
 int main(int argc, char* argv[])  {
   if(argc<2) {
-    printf("Please specify a command: m2v v2m vmod\n");
+    printf("Please specify a command: m2v v2m vcsg\n");
     return 1;
   }
 
@@ -140,7 +168,7 @@ int main(int argc, char* argv[])  {
   const char* command = argv[1];
   if(!strcmp(command, "m2v")) return m2v(argc, argv);
   if(!strcmp(command, "v2m")) return v2m(argc, argv);
-  if(!strcmp(command, "vmod")) return vmod(argc, argv);
+  if(!strcmp(command, "vcsg")) return vcsg(argc, argv);
 
   printf("Unknown command \"%s\"\n", command);
   return 1;
