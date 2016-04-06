@@ -124,8 +124,8 @@ int v2m(int argc, char* argv[])  {
   }
 
   for(int i=0;i<points.size();i++) fprintf(f, "v %lf %lf %lf\n", points[i].x(), points[i].y(), points[i].z());
-  for(int i=0;i<triangles.size();i++) fprintf(f, "f %d %d %d\n", triangles[i][0]+1, triangles[i][1]+1, triangles[i][2]+1);
-  for(int i=0;i<quads.size();i++) fprintf(f, "f %d %d %d %d\n", quads[i][0]+1, quads[i][1]+1, quads[i][2]+1, quads[i][3]+1);
+  for(int i=0;i<triangles.size();i++) fprintf(f, "f %d %d %d\n", triangles[i][2]+1, triangles[i][1]+1, triangles[i][0]+1);
+  for(int i=0;i<quads.size();i++) fprintf(f, "f %d %d %d %d\n", quads[i][3]+1, quads[i][2]+1, quads[i][1]+1, quads[i][0]+1);
 
   fclose(f);
 
