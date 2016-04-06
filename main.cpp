@@ -147,8 +147,8 @@ int vcsg(int argc, char* argv[])  {
   openvdb::FloatGrid::Ptr volumeB = fetchVolume(inputFileB);
 
   if(!strcmp(operation, "union")) openvdb::tools::csgUnion(*volumeA, *volumeB);
-  else if(!strcmp(operation, "intersection")) openvdb::tools::csgUnion(*volumeA, *volumeB);
-  else if(!strcmp(operation, "difference")) openvdb::tools::csgUnion(*volumeA, *volumeB);
+  else if(!strcmp(operation, "intersection")) openvdb::tools::csgIntersection(*volumeA, *volumeB);
+  else if(!strcmp(operation, "difference")) openvdb::tools::csgDifference(*volumeA, *volumeB);
 
   openvdb::io::File file(outputFile);
   openvdb::GridPtrVec grids;
