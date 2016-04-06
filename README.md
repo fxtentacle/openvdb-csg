@@ -38,4 +38,17 @@
 ./ovdbcsg v2m test-AB.vol 0 0.0 test2-AB3.obj
 ```
 
+## Move surface 0.1mm inwards
+This is useful for example when you want to 3d print a socket and plug combination and you forgot to leave a small air gap in between.
+```
+./ovdbcsg m2v test.obj 1 10 test-x1.vol
+./ovdbcsg v2m test-x1.vol -0.1 0.0 test-inwards-01mm.obj
+```
+
+## Move surface 0.1mm outwards
+```
+./ovdbcsg m2v test.obj 1 10 test-x1.vol
+./ovdbcsg v2m test-x1.vol 0.1 0.0 test-outwards-01mm.obj
+```
+
 
