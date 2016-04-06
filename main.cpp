@@ -107,10 +107,12 @@ int v2m(int argc, char* argv[])  {
   const char* outputFile = argv[5];
 
   openvdb::FloatGrid::Ptr volume = fetchVolume(inputFile);
+  isovalue *= volume->voxelSize().x();
 
   std::vector<openvdb::Vec3s> points;
   std::vector<openvdb::Vec3I> triangles;
   std::vector<openvdb::Vec4I> quads;
+  volume->setTransform(openvdb::math::Transform::createLinearTransform(1.0));
   openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*volume, points, triangles, quads, isovalue, adaptivity);
 
 
