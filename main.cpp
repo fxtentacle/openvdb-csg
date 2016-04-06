@@ -31,6 +31,7 @@ int m2v(int argc, char* argv[])  {
 
   const char* inputFile = argv[2];
   double voxelSize = atof(argv[3]);
+  double invVoxelSize = 1.0 / voxelSize;
   double bandWidth = atof(argv[4]);
   const char* outputFile = argv[5];
 
@@ -48,7 +49,7 @@ int m2v(int argc, char* argv[])  {
       // vertex
       double x=0,y=0,z=0,w=1;
       sscanf(line, "v %lf %lf %lf %lf", &x, &y, &z, &w);
-      mesh.vertices.push_back(openvdb::Vec3d(x,y,z));
+      mesh.vertices.push_back(openvdb::Vec3d(x*invVoxelSize,y*invVoxelSize,z*invVoxelSize));
     } else if(line[0] == 'f' && line[1] == ' ') {
       // face
       MeshDataFace face;
@@ -70,8 +71,8 @@ int m2v(int argc, char* argv[])  {
 
   fclose(f);
 
-  openvdb::math::Transform::Ptr transform = openvdb::math::Transform::createLinearTransform(voxelSize);
-  openvdb::FloatGrid::Ptr volume = openvdb::tools::meshToVolume<openvdb::FloatGrid, MeshDataAdapter>(mesh,*transform,bandWidth,bandWidth,0,NULL);
+  openvdb::FloatGrid::Ptr volume = openvdb::tools::meshToVolume<openvdb::FloatGrid, MeshDataAdapter>(mesh,openvdb::math::Transform(),bandWidth,bandWidth,0,NULL);
+  volume->setTransform(openvdb::math::Transform::createLinearTransform(voxelSize));
 
   openvdb::io::File file(outputFile);
   openvdb::GridPtrVec grids;
@@ -107,12 +108,11 @@ int v2m(int argc, char* argv[])  {
   const char* outputFile = argv[5];
 
   openvdb::FloatGrid::Ptr volume = fetchVolume(inputFile);
-  isovalue *= volume->voxelSize().x();
+  isovalue /= volume->voxelSize().x();
 
   std::vector<openvdb::Vec3s> points;
   std::vector<openvdb::Vec3I> triangles;
   std::vector<openvdb::Vec4I> quads;
-  volume->setTransform(openvdb::math::Transform::createLinearTransform(1.0));
   openvdb::tools::volumeToMesh<openvdb::FloatGrid>(*volume, points, triangles, quads, isovalue, adaptivity);
 
 
